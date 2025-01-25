@@ -1,0 +1,11 @@
+version: "3.8"
+
+services:
+  dev:
+    build: .
+    container_name: my-rust-dev
+    volumes:
+      - .:/usr/src/app
+    working_dir: /usr/src/app
+    tty: true
+    stdin_open: true
