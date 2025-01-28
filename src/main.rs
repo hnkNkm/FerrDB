@@ -1,4 +1,6 @@
 mod database;
+mod table;
+mod btree;
 mod parser;
 mod utils;
 
@@ -9,10 +11,11 @@ use std::io::{self, Write};
 fn main() {
     let mut db = Database::new();
     let db_file_path = "db.json";
+
     db.load_data(db_file_path);
 
+    println!("Welcome to FerrDB CLI. Type 'exit' or 'quit' to quit.");
     let mut input = String::new();
-    println!("Welcome to SimpleRDB CLI. Type 'exit' or 'quit' to quit.");
 
     loop {
         print!("> ");
@@ -31,30 +34,28 @@ fn main() {
         if command_line.starts_with("CREATE TABLE") {
             if let Some((table_name, columns)) = parse_create_table(command_line) {
                 db.create_table(&table_name, columns);
+                db.save_data(db_file_path);
             } else {
                 println!("Error: Invalid CREATE TABLE syntax.");
             }
         } else if command_line.starts_with("INSERT INTO") {
             if let Some((table_name, values)) = parse_insert_into(command_line) {
-                db.insert_into(&table_name, values, db_file_path);
+                db.insert_into(&table_name, values);
+                db.save_data(db_file_path);
             } else {
                 println!("Error: Invalid INSERT INTO syntax.");
             }
         } else if command_line.starts_with("SELECT") {
-            if let Some((cols, table_name)) = parse_select_table(command_line) {
-                if cols == "*" {
-                    db.select_all(&table_name);
-                } else {
-                    println!("Error: Specific column selection is not yet implemented.");
-                }
+            if let Some(table_name) = parse_select_table(command_line) {
+                db.select_all(&table_name);
             } else {
                 println!("Error: Invalid SELECT syntax.");
             }
-        } else if command_line.is_empty() {
         } else {
             println!("Unknown command: {}", command_line);
         }
     }
 
+    db.save_data(db_file_path);
     println!("Goodbye!");
 }
