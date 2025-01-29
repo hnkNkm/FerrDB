@@ -63,20 +63,23 @@ impl<K: Ord + Clone, V: Clone> BTreeNode<K, V> {
     }
 
     pub fn search(&self, key: &K) -> Option<&V> {
-        let mut i = 0;
-        while i < self.keys.len() && key > &self.keys[i] {
-            i += 1;
-        }
+        let mut low = 0;
+        let mut high = self.keys.len() - 1;
 
-        if i < self.keys.len() && key == &self.keys[i] {
-            return Some(&self.values[i]);
+        while low <= high {
+            let mid = (low + high) / 2;
+            if &self.keys[mid] == key {
+                return Some(&self.values[mid]);
+            } else if &self.keys[mid] < key {
+                low = mid + 1;
+            } else {
+                high = mid - 1;
+            }
         }
-
         if self.is_leaf {
             return None;
         }
-
-        self.children[i].search(key)
+        self.children[low].search(key)
     }
 }
 
