@@ -1,17 +1,13 @@
 use serde::{Deserialize, Serialize};
+
+use crate::table::Table;
 use std::collections::HashMap;
 use std::fs::{File, OpenOptions};
 use std::io::{BufReader, BufWriter};
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Table {
-    pub columns: Vec<String>,
-    pub rows: Vec<Vec<String>>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Database {
-    pub tables: HashMap<String, Table>,
+    tables: HashMap<String, Table>,
 }
 
 impl Database {
@@ -21,69 +17,18 @@ impl Database {
         }
     }
 
-    pub fn load_data(&mut self, path: &str) {
-        let file = match File::open(path) {
-            Ok(file) => file,
-            Err(_) => {
-                return;
-            }
-        };
-        let reader = BufReader::new(file);
-        match serde_json::from_reader(reader) {
-            Ok(db_data) => {
-                *self = db_data;
-                println!("Data loaded from {}", path);
-            }
-            Err(e) => {
-                println!("Failed to parse {}: {}", path, e);
-            }
-        }
-    }
-
-    pub fn save_data(&self, path: &str) {
-        let file = match OpenOptions::new().write(true).create(true).truncate(true).open(path) {
-            Ok(file) => file,
-            Err(e) => {
-                println!("Failed to open {} for writing: {}", path, e);
-                return;
-            }
-        };
-        let writer = BufWriter::new(file);
-        if let Err(e) = serde_json::to_writer_pretty(writer, &self) {
-            println!("Failed to write {}: {}", path, e);
-        } else {
-            println!("Data saved to {}", path);
-        }
-    }
-
     pub fn create_table(&mut self, name: &str, columns: Vec<String>) {
         if self.tables.contains_key(name) {
             println!("Error: Table '{}' already exists.", name);
             return;
         }
-        self.tables.insert(
-            name.to_string(),
-            Table {
-                columns,
-                rows: Vec::new(),
-            },
-        );
+        self.tables.insert(name.to_string(), Table::new(columns));
         println!("Table '{}' created.", name);
     }
 
-    pub fn insert_into(&mut self, table_name: &str, values: Vec<String>, db_path: &str) {
+    pub fn insert_into(&mut self, table_name: &str, values: Vec<String>) {
         if let Some(table) = self.tables.get_mut(table_name) {
-            if values.len() != table.columns.len() {
-                println!(
-                    "Error: Column count mismatch. Expected {}, got {}.",
-                    table.columns.len(),
-                    values.len()
-                );
-                return;
-            }
-            table.rows.push(values);
-            println!("Data inserted into '{}'.", table_name);
-            self.save_data(db_path);
+            table.insert(values);
         } else {
             println!("Error: Table '{}' does not exist.", table_name);
         }
@@ -91,13 +36,28 @@ impl Database {
 
     pub fn select_all(&self, table_name: &str) {
         if let Some(table) = self.tables.get(table_name) {
-            println!("Table '{}':", table_name);
-            println!("{:?}", table.columns);
-            for row in &table.rows {
-                println!("{:?}", row);
-            }
+            table.select_all();
         } else {
             println!("Error: Table '{}' does not exist.", table_name);
+        }
+    }
+
+    pub fn save_data(&self, path: &str) {
+        let file = OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(path)
+            .expect("Unable to open file for saving data");
+        let writer = BufWriter::new(file);
+        serde_json::to_writer_pretty(writer, self).expect("Failed to save data");
+    }
+
+    pub fn load_data(&mut self, path: &str) {
+        let file = File::open(path);
+        if let Ok(file) = file {
+            let reader = BufReader::new(file);
+            *self = serde_json::from_reader(reader).expect("Failed to load data");
         }
     }
 }
