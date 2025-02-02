@@ -1,18 +1,20 @@
 use serde::{Deserialize, Serialize};
 
-use crate::btree::BTree;
+// 修正: BTree ではなく BPlusTree をインポートする
+use crate::btree::BPlusTree;
 
 #[derive(Serialize, Deserialize)]
 pub struct Table {
     columns: Vec<String>,
-    data: BTree<String, Vec<String>>,
+    // 修正: BTree<String, Vec<String>> から BPlusTree<String, Vec<String>> に変更
+    data: BPlusTree<String, Vec<String>>,
 }
 
 impl Table {
     pub fn new(columns: Vec<String>) -> Self {
         Table {
             columns,
-            data: BTree::new(2),
+            data: BPlusTree::new(2),
         }
     }
 
@@ -37,9 +39,13 @@ impl Table {
     pub fn select_all(&self) {
         println!("Columns: {:?}", self.columns);
         if let Some(root) = self.data.get_root() {
-            let (keys, values) = root.get_keys_values();
-            for (key, value) in keys.iter().zip(values.iter()) {
-                println!("Key: {}, Values: {:?}", key, value);
+            let (keys, values_opt) = root.get_keys_values();
+            if let Some(values) = values_opt {
+                for (key, value) in keys.iter().zip(values.iter()) {
+                    println!("Key: {}, Values: {:?}", key, value);
+                }
+            } else {
+                println!("No leaf data available.");
             }
         } else {
             println!("No data available.");
