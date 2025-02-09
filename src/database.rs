@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-
 use crate::table::Table;
 use std::collections::HashMap;
 use std::fs::{File, OpenOptions};
@@ -15,6 +14,10 @@ impl Database {
         Database {
             tables: HashMap::new(),
         }
+    }
+    
+    pub fn get_table(&self, name: &str) -> Option<&Table> {
+        self.tables.get(name)
     }
 
     pub fn create_table(&mut self, name: &str, columns: Vec<String>) {
@@ -42,6 +45,24 @@ impl Database {
         }
     }
 
+    /// WHERE 句による検索：指定されたテーブルの、任意カラムの値が search_value と一致する行を表示する。
+    /// 主キー検索は B+Tree による高速検索で行い、それ以外は全件走査してフィルタリングする。
+    pub fn select_where(&self, table_name: &str, column_name: &str, search_value: &str) {
+        if let Some(table) = self.get_table(table_name) {
+            let results = table.select_where(column_name, search_value);
+            if results.is_empty() {
+                println!("No matching row found for {} = '{}'.", column_name, search_value);
+            } else {
+                println!("Columns: {:?}", table.columns);
+                for row in results {
+                    println!("Row: {:?}", row);
+                }
+            }
+        } else {
+            println!("Error: Table '{}' does not exist.", table_name);
+        }
+    }
+
     pub fn save_data(&self, path: &str) {
         let file = OpenOptions::new()
             .write(true)
@@ -54,8 +75,7 @@ impl Database {
     }
 
     pub fn load_data(&mut self, path: &str) {
-        let file = File::open(path);
-        if let Ok(file) = file {
+        if let Ok(file) = File::open(path) {
             let reader = BufReader::new(file);
             *self = serde_json::from_reader(reader).expect("Failed to load data");
         }
