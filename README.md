@@ -5,14 +5,29 @@ Feel free to open an issue or submit a pull request on [GitHub](https://github.c
 If you have suggestions or questions, please share them—your feedback helps us improve FerrDB.
 
 A minimal file-based CLI database written in Rust.  
-Stores data in `b.json` for persistence across sessions.
+Stores data in `db.json` for persistence across sessions.
 
 ## Overview
 
-- **File-based**: Data is serialized to `db.json` using `serde_json`.
-- **CLI-based**: Operate with simple SQL-like commands (`CREATE TABLE`, `INSERT INTO`, `SELECT`, etc.).
-- **Persistent**: Inserted data is saved to disk and reloaded on next startup.
+- **Primary Key Search**: FerrDB uses a B+Tree data structure to perform efficient primary key searches (e.g., for the first column such as "id") with O(log n) performance.
+- **Arbitrary Column Search**: For columns other than the primary key (e.g., "name", "age"), FerrDB supports WHERE clause queries by scanning all rows and filtering them. While this full table scan approach works well for small to moderate datasets, users can add secondary indexes later for improved performance.
+- **Unified Quote Trimming**: The SQL parser employs a common utility function to remove both single and double quotes from input values, ensuring consistent processing regardless of the quoting style.
+- **File-based & CLI**: Data is serialized to `db.json` and a simple CLI allows you to issue SQL-like commands.
 
+## Features
+- **CREATE TABLE:** Create new tables with specified columns.
+_Example:_ CREATE TABLE users (id, name, age);
+
+- **INSERT INTO:** Insert data into tables. The first column is used as the primary key.  
+_Example:_  INSERT INTO users VALUES ('1', 'John', '30'); INSERT INTO users VALUES ('2', 'Mike', '40');
+
+- **SELECT:**  
+- **SELECT * FROM <table>:** Retrieve all rows from a table.  
+- **SELECT * FROM <table> WHERE <column> = <value>:** Filter rows by matching a column value.  
+  _Note:_ Primary key searches use the efficient B+Tree, while non-primary key searches use full table scan filtering.  
+  The parser removes surrounding quotes so that both single and double quotes are handled uniformly.
+  
+## Usage
 
 
 ## Requirements
@@ -57,20 +72,55 @@ INSERT INTO users VALUES (1, "John", 30);
 
 3. view data
 
-```praintf
+```
 SELECT * FROM users;
 ```
 
 4. exit
 
-```praintf
+```
 exit
 ```
 
 
+## Usage
+
+The FerrDB CLI supports basic SQL-like commands. Here is a more detailed explanation:
+
+- **Creating a Table:**  
+Use the `CREATE TABLE` command followed by the table name and a comma-separated list of column names in parentheses.  
+```
+CREATE TABLE users (id, name, age);
+```
+
+This creates a new table named `users` with the columns `id`, `name`, and `age`.
+
+- **Inserting Data:**  
+Use the `INSERT INTO` command followed by the table name and `VALUES`, with the values enclosed in parentheses.  
+The first value is used as the primary key and is stored in a B+Tree for fast lookup.  
+```
+INSERT INTO users VALUES ('1', 'John', '30'); 
+INSERT INTO users VALUES ('2', 'Mike', '40');
+``` 
+
+- **Selecting Data:**  
+- **Full Table Query:**  
+  Use the `SELECT * FROM <table>;` command to retrieve all rows from the specified table.  
+  _Example:_  
+  ```
+  SELECT * FROM users;
+  ```
+- **Filtered Query (WHERE Clause):**  
+  Use the `SELECT * FROM <table> WHERE <column> = <value>;` command to filter rows based on a column value.  
+  The parser removes surrounding quotes from the value, so both single and double quotes work.  
+  _Examples:_  
+  ```
+  SELECT * FROM users WHERE name = 'John';
+  SELECT * FROM users WHERE name = "Mike";
+  ```
+  For primary key searches (usually the first column), the B+Tree search is used, providing efficient lookup. For other columns, all rows are scanned and filtered.
+
 ## Example Session
-
-
 ```
 Welcome to SimpleRDB CLI. Type 'exit' to quit.
 > CREATE TABLE users (id, name, age);
