@@ -21,30 +21,27 @@ impl Table {
     }
 
     /// 全ての行を取得する (B+Tree の葉ノードを連結リストとして辿る)
+    /// 全ての行を取得する（B+Tree の全葉ノードを再帰的に走査）
     pub fn get_all_rows(&self) -> Vec<Vec<String>> {
+        let mut rows = Vec::new();
         if let Some(root) = self.get_root() {
-            if root.is_leaf() {
-                return root.values().unwrap().clone();
-            } else {
-                let mut rows = Vec::new();
-                let mut node = root;
-                while !node.is_leaf() {
-                    node = node.children().unwrap().first().unwrap();
+            Self::traverse_leaves(root, &mut rows);
+        }
+        rows
+    }
+    
+    fn traverse_leaves(node: &crate::btree::BPlusTreeNode<String, Vec<String>>, rows: &mut Vec<Vec<String>>) {
+        if node.is_leaf() {
+            if let Some(vals) = node.values() {
+                for row in vals {
+                    rows.push(row.clone());
                 }
-                loop {
-                    for row in node.values().unwrap().iter() {
-                        rows.push(row.clone());
-                    }
-                    if let Some(next) = node.next() {
-                        node = next;
-                    } else {
-                        break;
-                    }
-                }
-                return rows;
+            }
+        } else if let Some(children) = node.children() {
+            for child in children {
+                Self::traverse_leaves(child, rows);
             }
         }
-        Vec::new()
     }
 
     /// データ行を挿入する。最初のカラムの値をプライマリキーとして B+Tree に登録する。
