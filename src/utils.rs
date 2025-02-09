@@ -1,3 +1,7 @@
+pub fn trim_quotes(input: &str) -> String {
+    input.trim_matches(|c| c == '\'' || c == '"').trim().to_string()
+}
+
 pub fn parse_values(input: &str) -> Vec<String> {
     let mut values = Vec::new();
     let mut current = String::new();

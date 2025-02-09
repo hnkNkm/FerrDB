@@ -5,7 +5,7 @@ mod parser;
 mod utils;
 
 use database::Database;
-use parser::{parse_create_table, parse_insert_into, parse_select_table};
+use parser::{parse_create_table, parse_insert_into, parse_select_table, parse_select_where};
 use std::io::{self, Write};
 
 fn main() {
@@ -46,7 +46,13 @@ fn main() {
                 println!("Error: Invalid INSERT INTO syntax.");
             }
         } else if command_line.starts_with("SELECT") {
-            if let Some(table_name) = parse_select_table(command_line) {
+            if command_line.contains("WHERE") {
+                if let Some((table_name, column_name, search_value)) = parse_select_where(command_line) {
+                    db.select_where(&table_name, &column_name, &search_value);
+                } else {
+                    println!("Error: Invalid SELECT WHERE syntax.");
+                }
+            } else if let Some(table_name) = parse_select_table(command_line) {
                 db.select_all(&table_name);
             } else {
                 println!("Error: Invalid SELECT syntax.");
