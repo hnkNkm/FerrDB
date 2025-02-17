@@ -47,6 +47,10 @@ impl Table {
     /// データ行を挿入する。最初のカラムの値をプライマリキーとして B+Tree に登録する。
     pub fn insert(&mut self, values: Vec<String>) {
         let key = values.get(0).cloned().unwrap_or_default();
+        if let Some(_) = self.data.search(&key) {
+            println!("Error: Duplicate primary key '{}'. Insert failed.", key);
+            return;
+        }
         self.data.insert(key, values);
     }
 
