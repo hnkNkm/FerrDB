@@ -47,13 +47,13 @@ fn main() {
             }
         } else if command_line.starts_with("SELECT") {
             if command_line.contains("WHERE") {
-                if let Some((table_name, column_name, search_value)) = parse_select_where(command_line) {
-                    db.select_where(&table_name, &column_name, &search_value);
+                if let Some((table_name, column_name, search_value, condition_value)) = parse_select_where(command_line) {
+                    db.select_where(&table_name, &column_name, &search_value, &condition_value);
                 } else {
                     println!("Error: Invalid SELECT WHERE syntax.");
                 }
-            } else if let Some(table_name) = parse_select_table(command_line) {
-                db.select_all(&table_name);
+            } else if let Some((table_name, columns)) = parse_select_table(command_line) {
+                db.select_all(&table_name, columns);
             } else {
                 println!("Error: Invalid SELECT syntax.");
             }

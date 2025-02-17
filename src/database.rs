@@ -37,9 +37,9 @@ impl Database {
         }
     }
 
-    pub fn select_all(&self, table_name: &str) {
+    pub fn select_all(&self, table_name: &str, selected_colums: Vec<String>) {
         if let Some(table) = self.tables.get(table_name) {
-            table.select_all();
+            table.select_all_with_columns(selected_colums);
         } else {
             println!("Error: Table '{}' does not exist.", table_name);
         }
@@ -47,21 +47,22 @@ impl Database {
 
     /// WHERE 句による検索：指定されたテーブルの、任意カラムの値が search_value と一致する行を表示する。
     /// 主キー検索は B+Tree による高速検索で行い、それ以外は全件走査してフィルタリングする。
-    pub fn select_where(&self, table_name: &str, column_name: &str, search_value: &str) {
-        if let Some(table) = self.get_table(table_name) {
-            let results = table.select_where(column_name, search_value);
-            if results.is_empty() {
-                println!("No matching row found for {} = '{}'.", column_name, search_value);
-            } else {
-                println!("Columns: {:?}", table.columns);
-                for row in results {
-                    println!("Row: {:?}", row);
-                }
-            }
-        } else {
-            println!("Error: Table '{}' does not exist.", table_name);
-        }
-    }
+    pub fn select_where(&self, table_name: &str, selected_columns: &Vec<String>, condition_column: &str, search_value: &str) {
+       if let Some(table) = self.get_table(table_name) {
+           let results = table.select_where(condition_column, search_value);
+           if results.is_empty() {
+               println!("No matching row found for {} = '{}'.", condition_column, search_value);
+           } else {
+               println!("Columns: {:?}", selected_columns);
+               for row in results {
+                   println!("Row: {:?}", row);
+               }
+           }
+       } else {
+           println!("Error: Table '{}' does not exist.", table_name);
+       }
+    } 
+    
 
     pub fn save_data(&self, path: &str) {
         let file = OpenOptions::new()

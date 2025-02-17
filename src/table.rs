@@ -55,11 +55,23 @@ impl Table {
     }
 
     /// 全件検索して結果を表示する
-    pub fn select_all(&self) {
-        println!("Columns: {:?}", self.columns);
+    pub fn select_all_with_columns(&self, selected_columns: Vec<String>) {
+        println!("Columns: {:?}", selected_columns);
         let rows = self.get_all_rows();
-        for row in rows {
-            println!("Row: {:?}", row);
+        // 表示するカラムが "*" の場合は全カラム表示
+        if selected_columns.len() == 1 && selected_columns[0] == "*" {
+            for row in rows {
+                println!("Row: {:?}", row);
+            }
+        } else {
+            // selected_columns に応じたカラムのインデックスを特定する
+            let indices: Vec<usize> = selected_columns.iter()
+                .filter_map(|col| self.columns.iter().position(|c| c == col))
+                .collect();
+            for row in rows {
+                let filtered: Vec<&String> = indices.iter().filter_map(|&i| row.get(i)).collect();
+                println!("Row: {:?}", filtered);
+            }
         }
     }
 
