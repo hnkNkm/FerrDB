@@ -1,20 +1,27 @@
-use crate::utils::trim_quotes;
+use crate::parser::{ParserError, Query};
 
-pub fn parse_insert_into(command: &str) -> Option<(String, Vec<String>)> {
-    let command = command.trim_end_matches(';').trim();
-    let parts: Vec<&str> = command.splitn(2, "VALUES").collect();
+/// Parse an INSERT query.
+/// Example: "INSERT INTO users VALUES (1, 'John', 30);"
+pub fn parse_insert(query: &str) -> Result<Query, ParserError> {
+    let query = query.trim_end_matches(';').trim();
+    let prefix = "INSERT INTO";
+    if !query.to_uppercase().starts_with(prefix) {
+        return Err(ParserError::InvalidSyntax("Not an INSERT command".into()));
+    }
+    let after_prefix = query[prefix.len()..].trim();
+    let parts: Vec<&str> = after_prefix.splitn(2, "VALUES").collect();
     if parts.len() != 2 {
-        return None;
+        return Err(ParserError::InvalidSyntax("Missing VALUES clause".into()));
     }
-    let tokens: Vec<&str> = parts[0].split_whitespace().collect();
-    if tokens.len() < 3 {
-        return None;
-    }
-    let table_name = tokens[2].to_string();
-    let values_str = parts[1].trim().trim_start_matches('(').trim_end_matches(')').trim();
-    let values: Vec<String> = values_str
+    let table_name = parts[0].trim().to_string();
+    let values_str = parts[1]
+        .trim()
+        .trim_start_matches('(')
+        .trim_end_matches(')')
+        .trim();
+    let values = values_str
         .split(',')
-        .map(|s| trim_quotes(s.trim()))
+        .map(|s| s.trim().to_string())
         .collect();
-    Some((table_name, values))
+    Ok(Query::Insert { table_name, values })
 }

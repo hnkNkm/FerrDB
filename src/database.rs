@@ -4,6 +4,8 @@ use std::collections::HashMap;
 use std::fs::{File, OpenOptions};
 use std::io::{BufReader, BufWriter};
 
+use crate::parser::Query;
+
 #[derive(Serialize, Deserialize)]
 pub struct Database {
     tables: HashMap<String, Table>,
@@ -63,6 +65,23 @@ impl Database {
        }
     } 
     
+    pub fn execute_query(&mut self, query: Query) {
+        match query {
+            Query::CreateTable { table_name, columns } => {
+                self.create_table(&table_name, columns);
+            },
+            Query::Insert { table_name, values } => {
+                self.insert_into(&table_name, values);
+            },
+            Query::Select { table_name, select_columns, condition } => {
+                match condition {
+                    Some(cond) => self.select_where(&table_name, &select_columns, &cond.column, &cond.value),
+                    None => self.select_all(&table_name, select_columns),
+                }
+            },
+            // その他のクエリタイプが追加された場合はここで処理
+        }
+    }
 
     pub fn save_data(&self, path: &str) {
         let file = OpenOptions::new()

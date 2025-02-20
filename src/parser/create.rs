@@ -1,20 +1,21 @@
-pub fn parse_create_table(command: &str) -> Option<(String, Vec<String>)> {
-    let parts: Vec<&str> = command.splitn(3, ' ').collect();
-    if parts.len() != 3 {
-        return None;
+use crate::parser::{ParserError, Query};
+/// Parse a CREATE TABLE query.
+/// Example: "CREATE TABLE users (id, name, age);"
+pub fn parse_create_table(query: &str) -> Result<Query, ParserError> {
+    let query = query.trim_end_matches(';').trim();
+    let prefix = "CREATE TABLE";
+    if !query.to_uppercase().starts_with(prefix) {
+        return Err(ParserError::InvalidSyntax("Not a CREATE TABLE command".into()));
     }
-    let remainder = parts[2].trim();
-    let mut split_iter = remainder.splitn(2, '(');
-    let table_name_part = split_iter.next()?.trim_end_matches(')').trim();
-    let columns_part_raw = split_iter.next()?.trim();
-    let columns_part = columns_part_raw.trim_end_matches(|c| c == ')' || c == ';').trim();
-    let table_name = table_name_part.trim_end_matches(';').trim();
-    if table_name.is_empty() || columns_part.is_empty() {
-        return None;
+    let after_prefix = query[prefix.len()..].trim();
+    let parts: Vec<&str> = after_prefix.splitn(2, '(').collect();
+    if parts.len() != 2 {
+        return Err(ParserError::InvalidSyntax("Missing column definitions".into()));
     }
-    let columns: Vec<String> = columns_part
-        .split(',')
-        .map(|col| col.trim().to_string())
+    let table_name = parts[0].trim().to_string();
+    let columns_str = parts[1].trim_end_matches(')').trim();
+    let columns = columns_str.split(',')
+        .map(|s| s.trim().to_string())
         .collect();
-    Some((table_name.to_string(), columns))
+    Ok(Query::CreateTable { table_name, columns })
 }
