@@ -5,7 +5,8 @@ mod parser;
 mod utils;
 
 use database::Database;
-use parser::{parse_create_table, parse_insert_into, parse_select_table, parse_select_where};
+// use parser::{parse_create_table, parse_insert_into, parse_select_table, parse_select_where};
+use parser::{parse_query, Query, ParserError};
 use std::io::{self, Write};
 
 fn main() {
@@ -30,35 +31,15 @@ fn main() {
         if command_line.eq_ignore_ascii_case("exit") || command_line.eq_ignore_ascii_case("quit") {
             break;
         }
-
-        if command_line.starts_with("CREATE TABLE") {
-            if let Some((table_name, columns)) = parse_create_table(command_line) {
-                db.create_table(&table_name, columns);
-                db.save_data(db_file_path);
-            } else {
-                println!("Error: Invalid CREATE TABLE syntax.");
+        
+        match parse_query(command_line) {
+            Ok(query) => {
+                db.execute_query(query);
+                db.save_data(&db_file_path);
             }
-        } else if command_line.starts_with("INSERT INTO") {
-            if let Some((table_name, values)) = parse_insert_into(command_line) {
-                db.insert_into(&table_name, values);
-                db.save_data(db_file_path);
-            } else {
-                println!("Error: Invalid INSERT INTO syntax.");
+            Err(e) => {
+                print!("Error: {:?}", e);
             }
-        } else if command_line.starts_with("SELECT") {
-            if command_line.contains("WHERE") {
-                if let Some((table_name, column_name, search_value, condition_value)) = parse_select_where(command_line) {
-                    db.select_where(&table_name, &column_name, &search_value, &condition_value);
-                } else {
-                    println!("Error: Invalid SELECT WHERE syntax.");
-                }
-            } else if let Some((table_name, columns)) = parse_select_table(command_line) {
-                db.select_all(&table_name, columns);
-            } else {
-                println!("Error: Invalid SELECT syntax.");
-            }
-        } else {
-            println!("Unknown command: {}", command_line);
         }
     }
 
